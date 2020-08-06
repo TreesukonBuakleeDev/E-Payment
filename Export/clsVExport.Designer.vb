@@ -46,15 +46,17 @@ Partial Class clsVExport
         Me.CrystalReportViewer2 = New CrystalDecisions.Windows.Forms.CrystalReportViewer()
         Me.ProgressBar1 = New System.Windows.Forms.ProgressBar()
         Me.Btn_GenXML = New System.Windows.Forms.Button()
+        Me.txtPercent = New System.Windows.Forms.Label()
+        Me.CBX_ALL = New System.Windows.Forms.CheckBox()
         CType(Me.DataGridView1, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'btnGetList
         '
-        Me.btnGetList.Location = New System.Drawing.Point(835, 62)
+        Me.btnGetList.Location = New System.Drawing.Point(835, 69)
         Me.btnGetList.Name = "btnGetList"
         Me.btnGetList.Size = New System.Drawing.Size(75, 23)
-        Me.btnGetList.TabIndex = 0
+        Me.btnGetList.TabIndex = 4
         Me.btnGetList.Text = "GetList"
         Me.btnGetList.UseVisualStyleBackColor = True
         '
@@ -63,23 +65,24 @@ Partial Class clsVExport
         Me.txtBatchFrom.Location = New System.Drawing.Point(839, 13)
         Me.txtBatchFrom.Name = "txtBatchFrom"
         Me.txtBatchFrom.Size = New System.Drawing.Size(100, 20)
-        Me.txtBatchFrom.TabIndex = 2
+        Me.txtBatchFrom.TabIndex = 1
         '
         'txtBatchTo
         '
         Me.txtBatchTo.Location = New System.Drawing.Point(972, 13)
         Me.txtBatchTo.Name = "txtBatchTo"
         Me.txtBatchTo.Size = New System.Drawing.Size(100, 20)
-        Me.txtBatchTo.TabIndex = 3
+        Me.txtBatchTo.TabIndex = 2
         '
         'btnExport
         '
-        Me.btnExport.Location = New System.Drawing.Point(997, 62)
+        Me.btnExport.Location = New System.Drawing.Point(695, 52)
         Me.btnExport.Name = "btnExport"
         Me.btnExport.Size = New System.Drawing.Size(75, 23)
         Me.btnExport.TabIndex = 4
-        Me.btnExport.Text = "Export"
+        Me.btnExport.Text = "Export BTMU"
         Me.btnExport.UseVisualStyleBackColor = True
+        Me.btnExport.Visible = False
         '
         'Label1
         '
@@ -101,7 +104,7 @@ Partial Class clsVExport
         '
         'btnPrintReconcile
         '
-        Me.btnPrintReconcile.Location = New System.Drawing.Point(674, 62)
+        Me.btnPrintReconcile.Location = New System.Drawing.Point(599, 11)
         Me.btnPrintReconcile.Name = "btnPrintReconcile"
         Me.btnPrintReconcile.Size = New System.Drawing.Size(123, 23)
         Me.btnPrintReconcile.TabIndex = 9
@@ -115,7 +118,7 @@ Partial Class clsVExport
         Me.CheckBox1.Location = New System.Drawing.Point(1002, 39)
         Me.CheckBox1.Name = "CheckBox1"
         Me.CheckBox1.Size = New System.Drawing.Size(70, 17)
-        Me.CheckBox1.TabIndex = 9
+        Me.CheckBox1.TabIndex = 3
         Me.CheckBox1.Text = "ReExport"
         Me.CheckBox1.UseVisualStyleBackColor = True
         '
@@ -133,12 +136,13 @@ Partial Class clsVExport
         '
         'btnValidate
         '
-        Me.btnValidate.Location = New System.Drawing.Point(916, 62)
+        Me.btnValidate.Location = New System.Drawing.Point(614, 52)
         Me.btnValidate.Name = "btnValidate"
         Me.btnValidate.Size = New System.Drawing.Size(75, 23)
         Me.btnValidate.TabIndex = 8
-        Me.btnValidate.Text = "Validate"
+        Me.btnValidate.Text = "Validate BTMU"
         Me.btnValidate.UseVisualStyleBackColor = True
+        Me.btnValidate.Visible = False
         '
         'DataGridView1
         '
@@ -172,7 +176,7 @@ Partial Class clsVExport
         DataGridViewCellStyle3.WrapMode = System.Windows.Forms.DataGridViewTriState.[True]
         Me.DataGridView1.RowHeadersDefaultCellStyle = DataGridViewCellStyle3
         Me.DataGridView1.Size = New System.Drawing.Size(1082, 317)
-        Me.DataGridView1.TabIndex = 10
+        Me.DataGridView1.TabIndex = 6
         '
         'PrintDialog1
         '
@@ -214,11 +218,11 @@ Partial Class clsVExport
         '
         'Btn_GenValidate
         '
-        Me.Btn_GenValidate.Location = New System.Drawing.Point(479, 52)
+        Me.Btn_GenValidate.Location = New System.Drawing.Point(916, 69)
         Me.Btn_GenValidate.Name = "Btn_GenValidate"
         Me.Btn_GenValidate.Size = New System.Drawing.Size(75, 23)
-        Me.Btn_GenValidate.TabIndex = 13
-        Me.Btn_GenValidate.Text = "BtnGenValidate"
+        Me.Btn_GenValidate.TabIndex = 7
+        Me.Btn_GenValidate.Text = "Validate"
         Me.Btn_GenValidate.UseVisualStyleBackColor = True
         '
         'CrystalReportViewer2
@@ -242,18 +246,38 @@ Partial Class clsVExport
         '
         'Btn_GenXML
         '
-        Me.Btn_GenXML.Location = New System.Drawing.Point(384, 52)
+        Me.Btn_GenXML.Location = New System.Drawing.Point(1000, 69)
         Me.Btn_GenXML.Name = "Btn_GenXML"
         Me.Btn_GenXML.Size = New System.Drawing.Size(72, 24)
-        Me.Btn_GenXML.TabIndex = 17
-        Me.Btn_GenXML.Text = "BtnGenXML"
+        Me.Btn_GenXML.TabIndex = 8
+        Me.Btn_GenXML.Text = "Export XML"
         Me.Btn_GenXML.UseVisualStyleBackColor = True
+        '
+        'txtPercent
+        '
+        Me.txtPercent.AutoSize = True
+        Me.txtPercent.Location = New System.Drawing.Point(264, 427)
+        Me.txtPercent.Name = "txtPercent"
+        Me.txtPercent.Size = New System.Drawing.Size(0, 13)
+        Me.txtPercent.TabIndex = 18
+        '
+        'CBX_ALL
+        '
+        Me.CBX_ALL.AutoSize = True
+        Me.CBX_ALL.Location = New System.Drawing.Point(43, 74)
+        Me.CBX_ALL.Name = "CBX_ALL"
+        Me.CBX_ALL.Size = New System.Drawing.Size(69, 17)
+        Me.CBX_ALL.TabIndex = 5
+        Me.CBX_ALL.Text = "Select all"
+        Me.CBX_ALL.UseVisualStyleBackColor = True
         '
         'clsVExport
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(1084, 457)
+        Me.Controls.Add(Me.CBX_ALL)
+        Me.Controls.Add(Me.txtPercent)
         Me.Controls.Add(Me.Btn_GenXML)
         Me.Controls.Add(Me.ProgressBar1)
         Me.Controls.Add(Me.CrystalReportViewer2)
@@ -301,4 +325,6 @@ Partial Class clsVExport
     Friend WithEvents Btn_GenXML As Button
     Private WithEvents CrystalReportViewer1 As CrystalDecisions.Windows.Forms.CrystalReportViewer
     Private WithEvents CrystalReportViewer2 As CrystalDecisions.Windows.Forms.CrystalReportViewer
+    Friend WithEvents txtPercent As System.Windows.Forms.Label
+    Friend WithEvents CBX_ALL As System.Windows.Forms.CheckBox
 End Class

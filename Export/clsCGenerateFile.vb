@@ -33,7 +33,7 @@ Public Class clsCGenerateFile
         Try
             For i = 0 To dtList.Rows.Count - 1
                 Dim BatchNo As String = dtList.Rows(i)("BatchNo")
-                Dim DataP As DataTable = GetDataP(BatchNo) '
+                Dim DataP As DataTable = GetDataP(BatchNo, "") '
                 For l = 0 To DataP.Rows.Count - 1
                     Dim Entry As String = DataP.Rows(l)("CNTENTR")
                     Dim FaxNo As String = DataP.Rows(l)("FAXNo").ToString.Replace(" ", "")
@@ -126,10 +126,8 @@ Public Class clsCGenerateFile
                 fileForWrite.WriteLine("")
                 fileForWrite.WriteLine("")
 
-
-
                 Dim BatchNo As String = dtList.Rows(i)("BatchNo")
-                Dim DataP As DataTable = GetDataP(BatchNo)
+                Dim DataP As DataTable = GetDataP(BatchNo, "")
                 For l = 0 To DataP.Rows.Count - 1
                     Dim Entry As String = DataP.Rows(l)("CNTENTR")
                     Dim FaxNo As String = DataP.Rows(l)("FAXNo").ToString.Replace(" ", "")
@@ -240,7 +238,7 @@ Public Class clsCGenerateFile
 
 #Region "Get Data"
 
-    Public Shared Function GetDataP(ByVal BatchNo As String) As DataTable
+    Public Shared Function GetDataP(ByVal BatchNo As String, ByVal Entryno As String) As DataTable
         Dim DataP As String = ""
         connection = New SqlConnection(conStr)
         If connection.State = ConnectionState.Closed Then
@@ -264,10 +262,12 @@ Public Class clsCGenerateFile
         sql1 &= "   ,RTRIM(R.TEXTSTRE4) AS POSTCODE " & vbCrLf
         sql1 &= "   ,V.BRN AS TAXID " & vbCrLf
         sql1 &= "   ,R.CODECTRY AS COUNTRY" & vbCrLf
+        sql1 &= "   ,E.DATE AS DATE" & vbCrLf
         sql1 &= "FROM CBBTHD E " & vbCrLf
         sql1 &= "   LEFT JOIN APVNR R ON E.MISCCODE = R.IDVEND " & vbCrLf
         sql1 &= "   LEFT JOIN APVEN V ON E.MISCCODE = V.VENDORID " & vbCrLf
         sql1 &= "WHERE LTRIM(RTRIM(E.BATCHID))  = '" & BatchNo & "'" & vbCrLf
+        sql1 &= "AND  LTRIM(RTRIM(E.ENTRYNO))  = '" & Entryno.TrimEnd & "'" & vbCrLf
         sql1 &= "   AND E.ENTRYTYPE = 1 "
 
         command = New SqlCommand(sql1, connection)
@@ -297,6 +297,7 @@ Public Class clsCGenerateFile
             sql1 &= "   ,D.QUANTITY AS TAXBASE " & vbCrLf
             sql1 &= "   ,D.DTLAMOUNT AS WHTAMOUNT " & vbCrLf
             sql1 &= "   ,ABS(H.TOTAMOUNT) AS TOTAMOUNT" & vbCrLf
+            sql1 &= "    ,D.ACCTDESC AS ACCTDESC " & vbCrLf
             sql1 &= "FROM CBBTDT D" & vbCrLf
             sql1 &= "   LEFT JOIN CBBTHD H ON D.BATCHID = H.BATCHID AND  D.ENTRYNO = H.ENTRYNO  " & vbCrLf
             sql1 &= "WHERE D.BATCHID = " & BatchNo & " AND D.ENTRYNO = " & Entry & vbCrLf
@@ -463,13 +464,25 @@ Public Class clsCGenerateFile
 
     End Sub
 
-    Public Shared Sub Running(ByRef RunNo As String)
+    Public Shared Sub Running(ByRef RunNo As String, Optional ByRef TYPE As String = "")
         Dim Data As String = ""
+        Dim FRunno As String = ""
+        Dim ArrRunno() As String
         connection = New SqlConnection(conStr)
         If connection.State = ConnectionState.Closed Then
             connection.Open()
         End If
-        sql1 = "SELECT MAX(ID) as ID FROM FMSEPayEx"
+        Call GenMaster.CheckExistFMSEpayEX()
+        sql1 = "SELECT MAX(RUNNO) as RUNNO FROM FMSEPayEx "
+        Select Case TYPE
+            Case "MC"
+                sql1 &= "WHERE RUNNO LIKE '%MC%'"
+            Case "FT"
+                sql1 &= "WHERE RUNNO LIKE '%FT%'"
+            Case Else
+                sql1 = sql1
+        End Select
+
         command = New SqlCommand(sql1, connection)
         adapter = New SqlDataAdapter(command)
         Dim dataSTRN = New DataTable()
@@ -478,16 +491,20 @@ Public Class clsCGenerateFile
         connection.Close()
 
         For i = 0 To dataSTRN.Rows.Count - 1
-            RunNo = dataSTRN.Rows(0).Item("ID").ToString
+            FRunno = dataSTRN.Rows(0).Item("RUNNO").ToString
             Exit For
         Next
 
-        If RunNo = "" Or IsDBNull(RunNo) Then
+        If FRunno = "" Or IsDBNull(FRunno) Then
             RunNo = Format(1, "0000")
         Else
+            ArrRunno = FRunno.Split("_")
+            RunNo = ArrRunno(1)
             RunNo = Format(RunNo + 1, "0000")
         End If
 
     End Sub
+
+    
 End Class
 

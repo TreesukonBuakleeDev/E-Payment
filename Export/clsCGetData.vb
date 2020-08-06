@@ -5,11 +5,12 @@ Public Class clsCGetData
     Public Function Getdata(Optional ByVal BatchFrom As String = "", Optional ByVal BatchTo As String = "", Optional ByVal ReExport As Boolean = False) As DataTable
         Dim Condition As String = ""
         If BatchFrom <> "" AndAlso BatchTo <> "" Then
-            Condition &= "AND B.[BATCHID] BETWEEN " & BatchFrom & " AND " & BatchTo
+            Condition &= "AND B.[BATCHID] BETWEEN " & BatchFrom & " AND " & BatchTo & vbCrLf
         End If
 
         If Not ReExport Then
-            Condition &= "   AND B.[BATCHID] NOT IN(SELECT CNTBTCH FROM FMSEPayEx)"
+            'Condition &= "   AND B.[BATCHID] NOT IN(SELECT CNTBTCH FROM FMSEPayEx)" & vbCrLf
+            Condition &= "   AND E.CNTBTCH IS NULL" & vbCrLf
         End If
 
         connection = New SqlConnection(conStr)
@@ -24,8 +25,12 @@ Public Class clsCGetData
         sql1 &= "   ,CBBTHD.ENTRYNO As 'Entry' " & vbCrLf
         sql1 &= "   ,CBBTHD.MISCCODE AS VendorCode " & vbCrLf
         sql1 &= "   ,APVNR.RMITNAME AS VendorName " & vbCrLf
-        sql1 &= "   ,CBBTHD.APPLAMOUNT AS Amount " & vbCrLf
-        sql1 &= "   ,B.BANKCODE AS BankCode " & vbCrLf
+        'sql1 &= "   ,CBBTHD.APPLAMOUNT AS Amount " & vbCrLf
+        sql1 &= "   ,ABS(CBBTHD.TOTAMOUNT) AS Amount " & vbCrLf
+        sql1 &= "   ,APVNR.NAMECITY AS BankCode " & vbCrLf
+        sql1 &= "   ,APVNR.CODESTTE AS BranchCode" & vbCrLf
+        sql1 &= "   ,APVNR.CODEPSTL AS AccountNumber" & vbCrLf
+        sql1 &= "   ,CASE WHEN SUBSTRING(APVNR.CODECTRY,LEN(APVNR.CODECTRY),LEN(APVNR.CODECTRY)) = ',' THEN '' ELSE SUBSTRING(APVNR.CODECTRY,LEN(APVNR.CODECTRY),LEN(APVNR.CODECTRY)) END AS ServiceType " & vbCrLf
         sql1 &= "   ,'' AS Currency " & vbCrLf
         sql1 &= "   ,CASE B.[STATUS] " & vbCrLf
         sql1 &= "       WHEN 0 THEN 'Open' " & vbCrLf
@@ -39,21 +44,23 @@ Public Class clsCGetData
         sql1 &= "   END AS BatchType " & vbCrLf
         sql1 &= "   ,'' AS DateRate " & vbCrLf
         sql1 &= "   ,CASE " & vbCrLf
-        sql1 &= "       WHEN E.CNTBTCH IS NULL THEN 'Not Export' " & vbCrLf
-        sql1 &= "       WHEN E.CNTBTCH IS NOT NULL THEN 'Exported' " & vbCrLf
+        sql1 &= "   WHEN E.CNTBTCH IS NULL THEN 'Not Export' " & vbCrLf
+        sql1 &= "   WHEN E.CNTBTCH IS NOT NULL AND E.CNTENTY = CBBTHD.ENTRYNO THEN 'Exported' "
         sql1 &= "   END AS ExportStatus" & vbCrLf
         sql1 &= "FROM CBBCTL B " & vbCrLf
         sql1 &= "   LEFT JOIN CBBANK BANK ON B.BANKCODE = BANK.BANKCODE " & vbCrLf
         sql1 &= "   LEFT OUTER JOIN CBBTHD ON CBBTHD.BATCHID = B.BATCHID " & vbCrLf
         sql1 &= "   LEFT OUTER JOIN APVNR ON CBBTHD.MISCCODE = APVNR.IDVEND " & vbCrLf
-        sql1 &= "   LEFT JOIN FMSEPayEx E ON B.BATCHID = E.CNTBTCH " & vbCrLf
+        sql1 &= "   LEFT JOIN FMSEPayEx E ON CBBTHD.BATCHID = E.CNTBTCH " & vbCrLf
+        sql1 &= "   AND CBBTHD.ENTRYNO = E.CNTENTY " & vbCrLf
         sql1 &= "WHERE 1 = 1 " & vbCrLf
         sql1 &= "   AND B.BATCHID IN (SELECT BATCHID FROM CBBTHD WHERE TOTAMOUNT < 0)" & vbCrLf
         sql1 &= "   AND B.BATCHTYPE = 0 " & vbCrLf
+        sql1 &= "    AND CBBTHD.ENTRYTYPE = 1" & vbCrLf
         'sql1 &= "   AND B.BANKCODE IN ('BTMU','SASMBC') " & vbCrLf 'Fix ไว้ 
         sql1 &= "   AND B.BANKCODE IN ('" & BaseValiabled.Bankcode & "') " & vbCrLf 'Fix ไว้ 
         sql1 &= "   AND B.[STATUS] = 0" & Condition
-
+        sql1 &= " ORDER BY (B.[BATCHID]) , (CBBTHD.ENTRYNO) ASC"
         command = New SqlCommand(sql1, connection)
         adapter = New SqlDataAdapter(command)
         dataSt = New DataSet()

@@ -83,5 +83,29 @@ Public Class GenMaster
 
     End Function
 
+    Public Shared Sub CheckExistFMSEpayEX()
+        Dim dtchk As DataTable = New DataTable()
+        connection = New SqlConnection(conStr)
+        If connection.State = ConnectionState.Closed Then
+            connection.Open()
+        End If
+        Dim STREXIST As String
+        STREXIST = "SELECT name FROM sys.tables WHERE name = 'FMSEPayEx'"
+        Dim cmdquery As SqlDataAdapter = New SqlDataAdapter(STREXIST, connection)
+        cmdquery.Fill(dtchk)
+        If dtchk.Rows.Count = 0 Then
+            Dim str As String
+            str = "CREATE TABLE [dbo].[FMSEPayEx](" & vbCrLf
+            str = "[ID] [bigint] IDENTITY(1,1) NOT NULL," & vbCrLf
+            str = "[RUNNO] [nvarchar](30) NULL," & vbCrLf
+            str = "[CNTBTCH] [nvarchar](30) NULL," & vbCrLf
+            str = "[CNTENTY] [nvarchar](30) NULL," & vbCrLf
+            str = "[EXPORTDATE] [nvarchar](30) NULL) " & vbCrLf
+            Dim cmd As SqlCommand = New SqlCommand(str, connection)
+            cmd.ExecuteNonQuery()
+        End If
+
+    End Sub
+
 
 End Class

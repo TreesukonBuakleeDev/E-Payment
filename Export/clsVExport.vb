@@ -62,7 +62,8 @@ Public Class clsVExport
         dtgCheckbox.HeaderText = "Check"
         dtgTextbox.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter
         dtgCheckbox.Name = "Check"
-        dtgCheckbox.Width = 50
+        dtgCheckbox.AutoSizeMode = False
+        dtgCheckbox.Width = 20
         DataGridView1.Columns.Add(dtgCheckbox)
 
         dtgTextbox = New DataGridViewTextBoxColumn
@@ -71,7 +72,7 @@ Public Class clsVExport
         dtgTextbox.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter
         dtgTextbox.Name = "BatchNo"
         dtgTextbox.ReadOnly = False
-        dtgTextbox.Width = 60
+        dtgTextbox.Width = 20
         DataGridView1.Columns.Add(dtgTextbox)
 
         dtgTextbox = New DataGridViewTextBoxColumn
@@ -80,7 +81,7 @@ Public Class clsVExport
         dtgTextbox.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter
         dtgTextbox.Name = "Entry"
         dtgTextbox.ReadOnly = False
-        dtgTextbox.Width = 60
+        dtgTextbox.Width = 20
         DataGridView1.Columns.Add(dtgTextbox)
 
         dtgTextbox = New DataGridViewTextBoxColumn
@@ -90,7 +91,7 @@ Public Class clsVExport
         dtgTextbox.Name = "BatchDate"
         dtgTextbox.ReadOnly = False
         dtgTextbox.Visible = False
-        dtgTextbox.Width = 80
+        dtgTextbox.Width = 60
         DataGridView1.Columns.Add(dtgTextbox)
 
         dtgTextbox = New DataGridViewTextBoxColumn
@@ -137,6 +138,33 @@ Public Class clsVExport
         dtgTextbox.HeaderText = "BankCode"
         dtgTextbox.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter
         dtgTextbox.Name = "BankCode"
+        dtgTextbox.ReadOnly = False
+        dtgTextbox.Width = 80
+        DataGridView1.Columns.Add(dtgTextbox)
+
+        dtgTextbox = New DataGridViewTextBoxColumn
+        dtgTextbox.DataPropertyName = "BranchCode"
+        dtgTextbox.HeaderText = "BranchCode"
+        dtgTextbox.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter
+        dtgTextbox.Name = "BranchCode"
+        dtgTextbox.ReadOnly = False
+        dtgTextbox.Width = 80
+        DataGridView1.Columns.Add(dtgTextbox)
+
+        dtgTextbox = New DataGridViewTextBoxColumn
+        dtgTextbox.DataPropertyName = "AccountNumber"
+        dtgTextbox.HeaderText = "AccountNumber"
+        dtgTextbox.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter
+        dtgTextbox.Name = "AccountNumber"
+        dtgTextbox.ReadOnly = False
+        dtgTextbox.Width = 150
+        DataGridView1.Columns.Add(dtgTextbox)
+
+        dtgTextbox = New DataGridViewTextBoxColumn
+        dtgTextbox.DataPropertyName = "ServiceType"
+        dtgTextbox.HeaderText = "ServiceType"
+        dtgTextbox.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter
+        dtgTextbox.Name = "ServiceType"
         dtgTextbox.ReadOnly = False
         dtgTextbox.Width = 80
         DataGridView1.Columns.Add(dtgTextbox)
@@ -194,7 +222,11 @@ Public Class clsVExport
 #Region "Event Form"
 
     Private Sub btnGetList_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnGetList.Click
+        ProgressBar1.Value = ProgressBar1.Value - ProgressBar1.Value
+
         DataGridView1.DataSource = ClsGet.Getdata(txtBatchFrom.Text.Trim, txtBatchTo.Text.Trim, CheckBox1.Checked)
+
+
     End Sub
 
     Private Sub btnValidate_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnValidate.Click
@@ -221,11 +253,11 @@ Public Class clsVExport
 
         Dim frm As New clsVCrystalReportPreview
         Dim resultdialog As DialogResult = MessageBox.Show("ท่านต้องการรายงานแบบ Summary ใช่หรือไม่", "ชนิดรายงาน", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2)
-        If resultdialog = Windows.Forms.DialogResult.Yes Then
-            frm = New clsVCrystalReportPreview(DataGridView1, TypeReportReconcile.Summary)
-        Else
-            frm = New clsVCrystalReportPreview(DataGridView1, TypeReportReconcile.Detail)
-        End If
+        'If resultdialog = Windows.Forms.DialogResult.Yes Then
+        '    frm = New clsVCrystalReportPreview(DataGridView1, TypeReportReconcile.Summary)
+        'Else
+        '    frm = New clsVCrystalReportPreview(DataGridView1, TypeReportReconcile.Detail)
+        'End If
         frm.ShowDialog()
     End Sub
 
@@ -251,8 +283,8 @@ Public Class clsVExport
                     Dim resultdialog As DialogResult = MessageBox.Show("ท่านต้องการ Print Reconcile ใช่หรือไม่", _
                                                                        "Report Reconcile", MessageBoxButtons.YesNo, MessageBoxIcon.Information)
                     If resultdialog = Windows.Forms.DialogResult.Yes Then
-                        Dim frm As New clsVCrystalReportPreview(DataGridView1, TypeReportReconcile.Summary)
-                        frm.ShowDialog()
+                        '    Dim frm As New clsVCrystalReportPreview(DataGridView1, TypeReportReconcile.Summary)
+                        'frm.ShowDialog()
                     End If
                     DataGridView1.DataSource.Rows.Clear()
                 Else
@@ -281,7 +313,6 @@ Public Class clsVExport
             End If
         End If
     End Sub
-
     Private Sub DataGridView1_DataSourceChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles DataGridView1.DataSourceChanged
         If DataGridView1.Rows.Count > 0 Then
             btnValidate.Enabled = True
@@ -325,20 +356,80 @@ Public Class clsVExport
     End Function
 
     Private Sub Btn_GenXML_Click(sender As Object, e As EventArgs) Handles Btn_GenXML.Click
+        UpdateProgress(0)
         GenValidate.cleardt()
+        ClearTempReport()
+        UpdateProgress(5)
         ValidateRmitto(DataGridView1)
+        UpdateProgress(10)
         If dtMC.Rows.Count <> 0 Then
-            GENXML(dtMC)
+            GENXML(dtMC, STATUS_MC)
         End If
-
+        UpdateProgress(50)
         If dtFT.Rows.Count <> 0 Then
-            GENXMLFT(dtFT)
+            GENXMLFT(dtFT, STATUS_FT)
         End If
-
+        UpdateProgress(35)
     End Sub
 
     Private Sub Btn_GenValidate_Click(sender As Object, e As EventArgs) Handles Btn_GenValidate.Click
+        ClearTempReport()
         ValidateRmitto(DataGridView1)
     End Sub
+    Sub ClearTempReport()
+        connection = New SqlConnection(conStr)
+        If connection.State = ConnectionState.Closed Then
+            connection.Open()
+        End If
+        CreateTempTable()
+        Dim strdel As String
+        strdel = "DELETE FROM FMSEPAYTEMP"
+        Dim cmd As SqlCommand = New SqlCommand(strdel, connection)
+        cmd.ExecuteNonQuery()
+    End Sub
 
+    Sub UpdateProgress(ByVal Values As String)
+        Try
+            If ProgressBar1.Value = 100 Then
+                ProgressBar1.Value = ProgressBar1.Value - 100
+            End If
+            ProgressBar1.Value += Values
+            txtPercent.Text = ProgressBar1.Value.ToString & "%"
+        Catch ex As Exception
+
+        End Try
+    End Sub
+
+   
+
+   
+    Private Sub CBX_ALL_CheckedChanged(sender As Object, e As EventArgs) Handles CBX_ALL.CheckStateChanged
+
+        If CBX_ALL.Checked = True Then
+            For i = 0 To DataGridView1.Rows.Count - 1
+                DataGridView1.Rows(i).Cells("Check").Value = True
+
+            Next
+        Else
+            For i = 0 To DataGridView1.Rows.Count - 1
+                DataGridView1.Rows(i).Cells("Check").Value = False
+
+            Next
+        End If
+        SendKeys.Send("{TAB}")
+
+
+    End Sub
+    Sub SelectCBX_ALL(ByRef dt As DataTable)
+        If CBX_ALL.Checked = True Then
+            For i = 0 To dt.Rows.Count - 1
+                dt.Rows(i).Item("Check") = True
+            Next
+        Else
+         
+        End If
+    End Sub
+
+    
+  
 End Class

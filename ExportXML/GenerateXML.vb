@@ -6,14 +6,18 @@ Module GenerateXML
     Public DataGETI As DataTable = New DataTable()
     Public DataGETW As DataTable = New DataTable()
     Public DataGETC As DataTable = New DataTable()
+    Public STATUS_MC As Boolean = True
 
-#Region "GETDATA"
+#Region "GENDATA"
     'Sub GENXML(ByVal DGVLIST As DataGridView)
-    Sub GENXML(ByVal dtMC As DataTable)
+    Sub GENXML(ByVal dtMC As DataTable, ByRef STATUS_MC As Boolean)
+        STATUS_MC = True
         Try
             Dim strSql As String = ""
             Dim settingPath As XmlWriterSettings = New XmlWriterSettings()
             settingPath.Indent = True
+
+
             Dim pathaddr As String
             Dim getnow, RunNo, gettime As String
             getnow = Date.Now.ToString("yyyyMMdd")
@@ -23,10 +27,10 @@ Module GenerateXML
             pathaddr = pathaddr + "\MCXML_" & getnow & gettime & ".xml"
 
             Dim MsgId_Value, CreDtTm_Value, NbOfTxs_Value, Nm_Value, Id_Value As String
-            clsCGenerateFile.Running(RunNo)
+            clsCGenerateFile.Running(RunNo, "MC")
             MsgId_Value = "MC" & getnow & "_" & RunNo
             CreDtTm_Value = DateTime.Now.ToString("o")
-            NbOfTxs_Value = clsVExport.CountSelect.ToString
+            NbOfTxs_Value = dtMC.Rows.Count
 
             Nm_Value = "KST"
             Id_Value = "02010222"
@@ -41,7 +45,7 @@ Module GenerateXML
             Dim xsiATT As XAttribute = New XAttribute(XNamespace.Xmlns + "xsi", xsiValue)
             Document.Add(xsiATT)
 
-            Dim urnValue As XNamespace = "urn:std:iso:20022:tech:xsd:pain.001.001.04"
+            Dim urnValue As XNamespace = "urn:iso:std:iso:20022:tech:xsd:pain.001.001.04"
             Dim urnATT As XAttribute = New XAttribute("xmlns", urnValue)
             Document.Add(urnATT)
 
@@ -106,9 +110,7 @@ Module GenerateXML
                 Batchno = dtMC.Rows(i).Item("BatchNo").ToString
                 EntryNo = dtMC.Rows(i).Item("Entry").ToString
 
-                Dim Ustrd = New XElement("Ustrd")
-                D_Ustrd(Ustrd, Batchno, EntryNo)
-                RmtInf.Add(Ustrd)
+                D_Ustrd(RmtInf, Batchno, EntryNo)
                 D_RmtInf(RmtInf, Batchno, EntryNo)
                 '***>>>
                 GENCdtTrfTxInf(RmtInf, strRmtInf, Batchno, EntryNo, cntRnd)
@@ -119,7 +121,6 @@ Module GenerateXML
             Next
 
             CstmrCdtTrfInitn.Add(PmtInf)
-
             '#GEN DOC
             Document.Add(CstmrCdtTrfInitn)
 
@@ -127,16 +128,20 @@ Module GenerateXML
             reader.ReadInnerXml()
             reader.MoveToContent()
 
+
+
+
             Using writer As XmlWriter = XmlWriter.Create(pathaddr, settingPath)
-                writer.WriteStartDocument()
+                writer.WriteStartDocument(standalone:=False)
                 writer.WriteRaw(reader.ReadOuterXml)
 
             End Using
+
             'Insert Data to FMSEPayEx
             clsCGenerateFile.STOREDATA(dtMC, MsgId_Value, getnow)
             DisplayValidate(dtErr)
         Catch ex As Exception
-            MessageBox.Show("Error 140: " & ex.Message)
+            MessageBox.Show("Error 135: " & ex.Message)
         End Try
     End Sub
     Sub GENCdtTrfTxInf(ByVal RmtInf As XElement, ByRef strRmtInf As String, ByVal Batchno As String, ByVal EntryNo As String, ByVal cntRnd As Integer)
@@ -179,7 +184,7 @@ Module GenerateXML
 
             'NODE: InstrForDbtrAgt
             Dim InstrForDbtrAgt As XElement = Nothing
-            D_InstrForDbtrAgt(InstrForDbtrAgt, Batchno)
+            D_InstrForDbtrAgt(InstrForDbtrAgt, Batchno, EntryNo)
             CdtTrfTxInf.Add(InstrForDbtrAgt)
 
             'NODE: TAX
@@ -187,12 +192,17 @@ Module GenerateXML
             D_Tax(Tax, Batchno, EntryNo)
             CdtTrfTxInf.Add(Tax)
 
+            'NODE: RltdRmtInf
+            Dim RltdRmtInf As XElement = Nothing
+            D_RltdRmtInf(RltdRmtInf)
+            'CdtTrfTxInf.Add(RltdRmtInf)
+
             'NODE : RmtInf
             CdtTrfTxInf.Add(RmtInf)
 
             strRmtInf = CdtTrfTxInf.ToString
         Catch ex As Exception
-            MessageBox.Show("Error 195: " & ex.Message)
+            MessageBox.Show("Error 198: " & ex.Message)
         End Try
     End Sub
 #End Region
@@ -201,12 +211,13 @@ Module GenerateXML
     Sub H_Othr(ByRef OrgId As XElement)
         Try
             Dim i As Integer
+            Dim Id_Value = "02010222"
             i = 1
             Do While i <= 3 'Repeat othr 3 time
                 Select Case i
                     Case 1
                         Dim othr1 = New XElement("Othr",
-                                                 New XElement("Id", ">>MGEB Code1"))
+                                                 New XElement("Id", Id_Value))
                         Dim SchmeNm = New XElement("SchmeNm",
                                                  New XElement("Prtry", "Mizuho Global e - Banking"))
                         othr1.Add(SchmeNm)
@@ -230,7 +241,7 @@ Module GenerateXML
                 i = i + 1
             Loop
         Catch ex As Exception
-            MessageBox.Show("Error 233: " & ex.Message)
+            MessageBox.Show("Error 237: " & ex.Message)
         End Try
     End Sub
 #End Region
@@ -239,17 +250,17 @@ Module GenerateXML
 #Region "DbtrAcct"
     Sub D_DbtrAcct(ByRef DbtrAcct As XElement)
         Dim Id = New XElement("Id")
-        Dim Othr = New XElement("Othr", New XElement("Id", "H15764665544"))
+        Dim Othr = New XElement("Othr", New XElement("Id", "H10764006066"))
         Id.Add(Othr)
         DbtrAcct.Add(Id)
 
     End Sub
 #End Region
 #Region "Ustrd"
-    Sub D_Ustrd(ByRef Ustrd As XElement, ByVal Batchno As String, ByVal EntryNo As String)
+    Sub D_Ustrd(ByRef RmtInf As XElement, ByVal Batchno As String, ByVal EntryNo As String)
         Try
             Dim TAXIDVENDOR As String = ""
-            DataGETP = clsCGenerateFile.GetDataP(Batchno)
+            DataGETP = clsCGenerateFile.GetDataP(Batchno, EntryNo)
 
             For n = 0 To DataGETP.Rows.Count - 1
                 TAXIDVENDOR = DataGETP.Rows(n).Item("TAXID").ToString
@@ -258,15 +269,15 @@ Module GenerateXML
             Dim strUstrdInv = New XElement("Ustrd", "InvoiceMC" & Batchno & EntryNo)
             Dim strUstrdTax = New XElement("Ustrd", "1|0105539110845")
             Dim strUstrdTaxVEND = New XElement("Ustrd", "1|" & TAXIDVENDOR.TrimEnd)
-            Ustrd.Add(strUstrdInv)
-            For i As Integer = 0 To 5
+            RmtInf.Add(strUstrdInv)
+            For i As Integer = 0 To 4
                 Dim strUstrd = New XElement("Ustrd", "||")
-                Ustrd.Add(strUstrd)
+                RmtInf.Add(strUstrd)
             Next
-            Ustrd.Add(strUstrdTax)
-            Ustrd.Add(strUstrdTaxVEND)
+            RmtInf.Add(strUstrdTax)
+            RmtInf.Add(strUstrdTaxVEND)
         Catch ex As Exception
-            MessageBox.Show("Error 269: " & ex.Message)
+            MessageBox.Show("Error 273: " & ex.Message)
         End Try
     End Sub
 #End Region
@@ -275,11 +286,9 @@ Module GenerateXML
     Sub D_RmtInf(ByRef RmtInf As XElement, ByVal Batchno As String, ByVal EntryNo As String)
         Try
             For i = 0 To dtMC.Rows.Count - 1
-
                 If IsDBNull(dtMC.Rows(i).Item("Check").ToString) Then
                     Continue For
                 End If
-
                 Dim IDINVC As String
                 Dim APPLAMOUNT As String
                 Dim INVCDESC As String
@@ -297,12 +306,13 @@ Module GenerateXML
                     If Batchno = BatchnoDGV And EntryNo = ENTRYDGV Then
                         'ELEMENT : RfrdDocInf 
                         IDINVC = DataGETI.Rows(j).Item("IDINVC").ToString()
-                        D_RmtInf_GenRfrdDocInf(IDINVC.Trim, strRfrdDocInf)
+                        D_RmtInf_GenRfrdDocInf(IDINVC.Trim, strRfrdDocInf, "CINV")
                         Dim xstrRfrdDocInf As XElement = XElement.Parse(strRfrdDocInf)
                         Dim Strd = New XElement("Strd", xstrRfrdDocInf)
 
                         'ELEMENT: RfrdDocAmt
                         APPLAMOUNT = DataGETI.Rows(j).Item("AMTGROSTOT").ToString
+                        APPLAMOUNT = (APPLAMOUNT).Remove(APPLAMOUNT.Length - 1)
                         D_RmtInf_GenRfrdDocAmt(APPLAMOUNT.TrimEnd, strRfrdDocAmt)
                         Dim xstrRfrdDocAmt As XElement = XElement.Parse(strRfrdDocAmt)
                         Strd.Add(xstrRfrdDocAmt)
@@ -320,47 +330,96 @@ Module GenerateXML
                         RmtInf.Add(Strd)
                     End If
                 Next
+                DataGETW = clsCGenerateFile.GetDataW(Batchno, EntryNo)
+                For k = 0 To DataGETW.Rows.Count - 1
+                    strRfrdDocInf = ""
+                    strRfrdDocAmt = ""
+                    strCdtrRefInf = ""
+                    If Batchno = BatchnoDGV And EntryNo = ENTRYDGV Then
+                        'ELEMENT : RfrdDocInf 
+                        IDINVC = DataGETW.Rows(k).Item("IDDISTCODE").ToString()
+                        D_RmtInf_GenRfrdDocInf(IDINVC.Trim & " WHT", strRfrdDocInf, "CREN")
+                        Dim xstrRfrdDocInf As XElement = XElement.Parse(strRfrdDocInf)
+                        Dim Strdw = New XElement("Strd", xstrRfrdDocInf)
+
+                        'ELEMENT: RfrdDocAmt
+                        APPLAMOUNT = "0.00"
+                        Dim TotWHTAMT = DataGETW.Rows(k).Item("WHTAMOUNT").ToString
+                        TotWHTAMT = TotWHTAMT.Remove(TotWHTAMT.Length - 1)
+                        Dim TAXBASE = DataGETW.Rows(k).Item("TAXBASE").ToString
+                        D_RmtInf_GenRfrdDocAmt(TotWHTAMT, strRfrdDocAmt, TotWHTAMT, TAXBASE)
+                        Dim xstrRfrdDocAmt As XElement = XElement.Parse(strRfrdDocAmt)
+                        Strdw.Add(xstrRfrdDocAmt)
+
+                        'ELEMENT: CdtrRefInf
+                        INVCDESC = DataGETW.Rows(k).Item("TAXRATE").ToString.TrimEnd & DataGETW.Rows(k).Item("TEXTREF").ToString.TrimEnd
+                        D_RmtInf_GenCdtrRefInf(INVCDESC.TrimEnd, strCdtrRefInf)
+                        Dim xstrCdtrRefInf As XElement = XElement.Parse(strCdtrRefInf)
+                        Strdw.Add(xstrCdtrRefInf)
+
+                        'ELEMENT: AddtlRmtInf
+                        Dim AddtlRmtInf = New XElement("AddtlRmtInf", "099")
+                        Strdw.Add(AddtlRmtInf)
+
+                        RmtInf.Add(Strdw)
+                    End If
+                Next
             Next
         Catch ex As Exception
-            MessageBox.Show("Error 325: " & ex.Message)
+            MessageBox.Show("Error 360: " & ex.Message)
         End Try
     End Sub
 
-    Sub D_RmtInf_GenRfrdDocInf(ByVal IDINVC As String, ByRef str As String)
-        Dim RfrdDocInf = New XElement("RfrdDocInf")
-        Dim Tp = New XElement("Tp")
-        Dim CdOrPrtry = New XElement("CdOrPrtry", New XElement("Cd", "CINV"))
-        Dim nb = New XElement("Nb", IDINVC.TrimEnd)
-        RfrdDocInf.Add(Tp)
-        RfrdDocInf.Add(nb)
-        Tp.Add(CdOrPrtry)
-        str = RfrdDocInf.ToString
+    Sub D_RmtInf_GenRfrdDocInf(ByVal IDINVC As String, ByRef str As String, ByVal Cd As String)
+        Try
+            Dim RfrdDocInf = New XElement("RfrdDocInf")
+            Dim Tp = New XElement("Tp")
+            Dim CdOrPrtry = New XElement("CdOrPrtry", New XElement("Cd", Cd))
+            Dim nb = New XElement("Nb", IDINVC.TrimEnd)
+            RfrdDocInf.Add(Tp)
+            RfrdDocInf.Add(nb)
+            Tp.Add(CdOrPrtry)
+            str = RfrdDocInf.ToString
+        Catch ex As Exception
+            MessageBox.Show("Error 375: " & ex.Message)
+        End Try
     End Sub
 
-    Sub D_RmtInf_GenRfrdDocAmt(ByVal APPLAMOUNT As String, ByRef str As String)
-        Dim RfrdDocAmt = New XElement("RfrdDocAmt")
-        Dim DuePyblAmt = New XElement("DuePyblAmt", New XAttribute("Ccy", "THB"), APPLAMOUNT)
-        Dim RmtdAmt = New XElement("RmtdAmt", New XAttribute("Ccy", "THB"), APPLAMOUNT)
-        RfrdDocAmt.Add(DuePyblAmt)
-        RfrdDocAmt.Add(RmtdAmt)
-        str = RfrdDocAmt.ToString
+    Sub D_RmtInf_GenRfrdDocAmt(ByVal APPLAMOUNT As String, ByRef str As String, Optional ByVal ToTWHTAMT As String = "", Optional ByVal TAXBASE As String = "")
+        Try
+            'APPLAMOUNT = APPLAMOUNT.Remove(APPLAMOUNT.Length - 1)
+            Dim RfrdDocAmt = New XElement("RfrdDocAmt")
+            Dim DuePyblAmt = New XElement("DuePyblAmt", New XAttribute("Ccy", "THB"), APPLAMOUNT)
+            Dim RmtdAmt = New XElement("RmtdAmt", New XAttribute("Ccy", "THB"), APPLAMOUNT)
+
+            RfrdDocAmt.Add(DuePyblAmt)
+            RfrdDocAmt.Add(RmtdAmt)
+            str = RfrdDocAmt.ToString
+        Catch ex As Exception
+            MessageBox.Show("Error 390: " & ex.Message)
+        End Try
     End Sub
     Sub D_RmtInf_GenCdtrRefInf(ByVal INVCDESC As String, ByRef str As String)
-        Dim CdtrRefInf = New XElement("CdtrRefInf")
-        Dim Tp = New XElement("Tp")
-        '>>> Validate INVDESC < 35 character
-        Dim CdOrPrtry = New XElement("CdOrPrtry", New XElement("Prtry", INVCDESC.TrimEnd))
-        Dim Ref = New XElement("Ref", "1 B")
-        CdtrRefInf.Add(Tp)
-        CdtrRefInf.Add(Ref)
-        Tp.Add(CdOrPrtry)
-        str = CdtrRefInf.ToString
+        Try
+            Dim CdtrRefInf = New XElement("CdtrRefInf")
+            Dim Tp = New XElement("Tp")
+            If INVCDESC.Length > 35 Then
+                INVCDESC = INVCDESC.Remove(34, INVCDESC.Length - 34)
+            End If
+            Dim CdOrPrtry = New XElement("CdOrPrtry", New XElement("Prtry", INVCDESC.TrimEnd))
+            Dim Ref = New XElement("Ref", "1 B")
+            CdtrRefInf.Add(Tp)
+            CdtrRefInf.Add(Ref)
+            Tp.Add(CdOrPrtry)
+            str = CdtrRefInf.ToString
+        Catch ex As Exception
+            MessageBox.Show("Error 407: " & ex.Message)
+        End Try
     End Sub
 #End Region
 
 #Region "PmtId"
     Sub D_PmtId(ByRef PmtId As XElement, ByVal Batchno As String, ByVal EntryNo As String, ByVal cntRnd As Integer)
-
         Try
             For i = 0 To dtMC.Rows.Count - 1
                 Dim batchnoDGV = dtMC.Rows(i).Item("BatchNo").ToString
@@ -378,24 +437,27 @@ Module GenerateXML
                     PmtId.Add(EndToEndId)
                 End If
             Next
-
         Catch ex As Exception
-            MessageBox.Show("Error 385: " & ex.Message)
+            MessageBox.Show("Error 432: " & ex.Message)
         End Try
     End Sub
-
     Sub D_PmtId_GenInstrId(ByRef InstrId As XElement, ByVal batchno As String, ByVal entryno As String)
-        DataGETC.Rows.Clear()
-        DataGETC.Columns.Clear()
+        Try
+            DataGETC.Rows.Clear()
+            DataGETC.Columns.Clear()
+            Dim RefCheque As String
+            DataGETC = clsCGenerateFile.GetDataCB(batchno, entryno)
 
-        Dim RefCheque As String
-        DataGETC = clsCGenerateFile.GetDataCB(batchno, entryno)
-
-        For i = 0 To DataGETC.Rows.Count - 1
-            RefCheque = DataGETC.Rows(i).Item("REFERENCE").ToString
-            InstrId = New XElement("InstrId", RefCheque.TrimEnd)
-        Next
-
+            For i = 0 To DataGETC.Rows.Count - 1
+                RefCheque = DataGETC.Rows(i).Item("REFERENCE").ToString.TrimEnd
+                If RefCheque = "" Then
+                    RefCheque = batchno & entryno
+                End If
+                InstrId = New XElement("InstrId", RefCheque.TrimEnd)
+            Next
+        Catch ex As Exception
+            MessageBox.Show("Error 452: " & ex.Message)
+        End Try
     End Sub
 #End Region
 
@@ -403,10 +465,8 @@ Module GenerateXML
     Sub D_PmtTpInf(ByRef PmtTpInf As XElement)
         Dim LclInstrm = New XElement("LclInstrm", New XElement("Prtry", "DB*MC"))
         Dim CtgyPurp = New XElement("CtgyPurp", New XElement("Cd", "SUPP"))
-
         PmtTpInf.Add(LclInstrm)
         PmtTpInf.Add(CtgyPurp)
-
     End Sub
 
     Sub D_ReqdExctnDt(ByRef ReqdExctnDt As XElement, ByVal dtMC As DataTable)
@@ -416,9 +476,7 @@ Module GenerateXML
             Dim ENTRYDGV As String = ""
             DataGETC.Rows.Clear()
             DataGETC.Columns.Clear()
-
             For i = 0 To dtMC.Rows.Count - 1
-
                 If IsDBNull(dtMC.Rows(i).Item("Check").ToString) Then
                     Continue For
                 End If
@@ -435,15 +493,13 @@ Module GenerateXML
                 End If
             Next
         Catch ex As Exception
-            MessageBox.Show("Error 437: " & ex.Message)
+            MessageBox.Show("Error 489: " & ex.Message)
         End Try
     End Sub
-
 #End Region
 
 #Region "Amt"
     Sub D_Amt(ByRef Amt As XElement, ByVal Batchno As String, ByVal EntryNo As String)
-        '>>AMT value 
         Dim TOTALAMOUNT As String
         Try
             For i = 0 To dtMC.Rows.Count - 1
@@ -456,17 +512,16 @@ Module GenerateXML
                 If dtMC.Rows(i).Item("Check").ToString = True Then
                     If Batchno = batchnoDGV And EntryNo = EntryNoDGV Then
                         TOTALAMOUNT = dtMC.Rows(i).Item("Amount").ToString
+                        TOTALAMOUNT = TOTALAMOUNT.Remove(TOTALAMOUNT.Length - 1)
                         Dim InstdAmt = New XElement("InstdAmt", New XAttribute("Ccy", "THB"), TOTALAMOUNT)
                         Amt.Add(InstdAmt)
                     End If
                 End If
             Next
-
         Catch ex As Exception
-            MessageBox.Show("Error 467:" & ex.Message)
+            MessageBox.Show("Error 515:" & ex.Message)
         End Try
     End Sub
-
 #End Region
 
 #Region "ChrgBr"
@@ -474,18 +529,16 @@ Module GenerateXML
         '>>ChrgBr value
         ChrgBr = New XElement("ChrgBr", "CRED")
     End Sub
-
 #End Region
 
 #Region "CdtrAgt"
     Sub D_CdtrAgt(ByRef CdtrAgt As XElement, ByVal Batchno As String, ByVal EntryNo As String)
-
         Try
             Dim BankCode As String
             For i = 0 To dtMC.Rows.Count - 1
                 DataGETP.Rows.Clear()
                 DataGETP.Columns.Clear()
-                DataGETP = clsCGenerateFile.GetDataP(Batchno)
+                DataGETP = clsCGenerateFile.GetDataP(Batchno, EntryNo)
                 Dim batchnoDGV As String = dtMC.Rows(i).Item("BatchNo").ToString
                 Dim EntryNoDGV As String = dtMC.Rows(i).Item("Entry").ToString
                 If dtMC.Rows(i).Item("Check").ToString = True Then
@@ -511,22 +564,24 @@ Module GenerateXML
             Next
 
         Catch ex As Exception
-            MessageBox.Show("Error 515: " & ex.Message)
+            MessageBox.Show("Error 560: " & ex.Message)
         End Try
     End Sub
 
     Sub D_CdtrAgt_GENClrSysMmbId(ByVal BANKCODE As String, ByRef str As String)
-        Dim ClrSysMmbId = New XElement("ClrSysMmbId")
-        Dim ClrSysId = New XElement("ClrSysId", New XElement("Cd", "THCBC"))
-        Dim MmbId = New XElement("MmbId", BANKCODE.TrimEnd)
+        Try
+            Dim ClrSysMmbId = New XElement("ClrSysMmbId")
+            Dim ClrSysId = New XElement("ClrSysId", New XElement("Cd", "THCBC"))
+            Dim MmbId = New XElement("MmbId", BANKCODE.TrimEnd)
 
-        ClrSysMmbId.Add(ClrSysId)
-        ClrSysMmbId.Add(MmbId)
+            ClrSysMmbId.Add(ClrSysId)
+            ClrSysMmbId.Add(MmbId)
 
-        str = ClrSysMmbId.ToString
-
+            str = ClrSysMmbId.ToString
+        Catch ex As Exception
+            MessageBox.Show("Error 575: " & ex.Message)
+        End Try
     End Sub
-
 #End Region
 
 #Region "Cdtr"
@@ -540,7 +595,7 @@ Module GenerateXML
                 If dtMC.Rows(i).Item("Check").ToString = True Then
                     DataGETP.Rows.Clear()
                     DataGETP.Columns.Clear()
-                    DataGETP = clsCGenerateFile.GetDataP(Batchno)
+                    DataGETP = clsCGenerateFile.GetDataP(Batchno, EntryNo)
                     Dim batchnoDGV, EntryNoDGV, Address, VendName, TAXID, POSTCODE, CITY As String
                     batchnoDGV = dtMC.Rows(i).Item("BatchNo").ToString
                     EntryNoDGV = dtMC.Rows(i).Item("Entry").ToString
@@ -568,12 +623,16 @@ Module GenerateXML
                 End If
             Next
         Catch ex As Exception
-            MessageBox.Show("Error 570: " & ex.Message)
+            MessageBox.Show("Error 619: " & ex.Message)
         End Try
     End Sub
     Sub D_Cdtr_GENPstlAdr(ByVal Address As String, ByRef str As String, ByVal POSTCODE As String, ByVal CITY As String)
-        Dim PstlAdr = New XElement("PstlAdr", New XElement("PstCd", POSTCODE.TrimEnd), New XElement("TwnNm", CITY.TrimEnd), New XElement("Ctry", "TH"), New XElement("AdrLine", Address.TrimEnd))
-        str = PstlAdr.ToString
+        Try
+            Dim PstlAdr = New XElement("PstlAdr", New XElement("PstCd", POSTCODE.TrimEnd), New XElement("TwnNm", CITY.TrimEnd), New XElement("Ctry", "TH"), New XElement("AdrLine", Address.TrimEnd))
+            str = PstlAdr.ToString
+        Catch ex As Exception
+            MessageBox.Show("Error 627: " & ex.Message)
+        End Try
     End Sub
 #End Region
 
@@ -588,7 +647,7 @@ Module GenerateXML
                 If dtMC.Rows(i).Item("Check").ToString = True Then
                     DataGETP.Rows.Clear()
                     DataGETP.Columns.Clear()
-                    DataGETP = clsCGenerateFile.GetDataP(BatchNo)
+                    DataGETP = clsCGenerateFile.GetDataP(BatchNo, EntryNo)
                     Dim BatchDGV, EntryNoDGV, Acct As String
                     BatchDGV = dtMC.Rows(i).Item("BatchNo").ToString
                     EntryNoDGV = dtMC.Rows(i).Item("Entry").ToString
@@ -603,31 +662,55 @@ Module GenerateXML
                 End If
             Next
         Catch ex As Exception
-            MessageBox.Show("Error 606: " & ex.Message)
+            MessageBox.Show("Error 658 " & ex.Message)
         End Try
 
     End Sub
 #End Region
 
 #Region "InstrForDbtrAgt"
-    Sub D_InstrForDbtrAgt(ByRef InstrForDbtrAgt As XElement, ByVal batchno As String)
+    Sub D_InstrForDbtrAgt(ByRef InstrForDbtrAgt As XElement, ByVal batchno As String, ByVal ENTRYNO As String)
         Dim optService As String = "0"
         Dim arrStr(3) As String
-        DataGETP = clsCGenerateFile.GetDataP(batchno)
+        DataGETP = clsCGenerateFile.GetDataP(batchno, ENTRYNO)
+        DataGETW = clsCGenerateFile.GetDataW(batchno, ENTRYNO)
         Try
-            For i = 0 To DataGETP.Rows.Count - 1
-                optService = DataGETP.Rows(i).Item("COUNTRY").ToString
-                arrStr = optService.Split(",")
-                If arrStr.Count >= 4 Then
-                    If arrStr(3).ToString <> "" Or IsNumeric(arrStr(3)) = True Then
-                        optService = arrStr(3).ToString
+            If DataGETW.Rows.Count > 0 Then
+                For i = 0 To DataGETP.Rows.Count - 1
+                    optService = DataGETP.Rows(i).Item("COUNTRY").ToString.TrimEnd
+                    arrStr = optService.Split(",")
+                    If arrStr.Count >= 4 Then
+                        If arrStr(3).ToString.TrimEnd <> "" Or IsNumeric(arrStr(3)) = True Then
+                            optService = arrStr(3).ToString.TrimEnd
+                        Else
+                            optService = "0"
+                        End If
                     Else
                         optService = "0"
                     End If
-                Else
-                    optService = "0"
-                End If
-            Next
+                Next
+            Else
+                For i = 0 To DataGETP.Rows.Count - 1
+                    optService = DataGETP.Rows(i).Item("COUNTRY").ToString.TrimEnd
+                    arrStr = optService.Split(",")
+                    If arrStr.Count >= 4 Then
+                        If arrStr(3).ToString.TrimEnd <> "" Or IsNumeric(arrStr(3)) = True Then
+                            If arrStr(3).ToString.TrimEnd = "3" Then 'Case WHT Certificate
+                                optService = "0"
+                            ElseIf arrStr(3).ToString.TrimEnd = "5" Then 'Case Pre-Advice + WHT Certificate
+                                optService = "2"
+                            Else
+                                optService = "0"
+                            End If
+                        Else
+                            optService = "0"
+                        End If
+                        Else
+                            optService = "0"
+                        End If
+                Next
+            End If
+
         Catch ex As Exception
             optService = "0"
         End Try
@@ -638,127 +721,144 @@ Module GenerateXML
 
 #Region "Tax"
     Sub D_Tax(ByRef Tax As XElement, ByVal Batchno As String, ByVal EntryNo As String)
-        DataGETP.Rows.Clear()
-        DataGETP.Columns.Clear()
-        DataGETP.Clear()
-        Tax = New XElement("Tax")
-        Dim TaxId, RefNbValue As String
-        RefNbValue = Batchno.Remove(0, 3) & EntryNo.Remove(0, 2)
-
-        DataGETP = clsCGenerateFile.GetDataP(Batchno)
-        For i = 0 To DataGETP.Rows.Count - 1
-            TaxId = DataGETP.Rows(0).Item("TAXID").ToString.TrimEnd
-            Exit For
-        Next
-
-        Dim TaxTp As String = "002"
-        Dim arrStr(3) As String
-        DataGETP = clsCGenerateFile.GetDataP(Batchno)
         Try
+            DataGETP.Rows.Clear()
+            DataGETP.Columns.Clear()
+            DataGETP.Clear()
+
+            DataGETW.Rows.Clear()
+            DataGETW.Columns.Clear()
+            DataGETW.Clear()
+
+            Tax = New XElement("Tax")
+            Dim TaxId, RefNbValue As String
+            RefNbValue = Batchno.Remove(0, 3) & EntryNo.Remove(0, 2)
+
+            DataGETP = clsCGenerateFile.GetDataP(Batchno, EntryNo)
             For i = 0 To DataGETP.Rows.Count - 1
-                TaxTp = DataGETP.Rows(i).Item("COUNTRY").ToString.TrimEnd
-                arrStr = TaxTp.Split(",")
-                If arrStr.Count >= 4 Then
-                    If arrStr(2).ToString <> "" Then
-                        TaxTp = arrStr(2).ToString
+                TaxId = DataGETP.Rows(0).Item("TAXID").ToString.TrimEnd
+                Exit For
+            Next
+
+            Dim TaxTp As String = "002"
+            Dim arrStr(3) As String
+            DataGETP = clsCGenerateFile.GetDataP(Batchno, EntryNo)
+            Try
+                For i = 0 To DataGETP.Rows.Count - 1
+                    TaxTp = DataGETP.Rows(i).Item("COUNTRY").ToString.TrimEnd
+                    arrStr = TaxTp.Split(",")
+                    If arrStr.Count >= 4 Then
+                        If arrStr(2).ToString <> "" Then
+                            TaxTp = arrStr(2).ToString
+                        Else
+                            TaxTp = "002"
+                        End If
                     Else
                         TaxTp = "002"
                     End If
-                Else
-                    TaxTp = "002"
-                End If
-            Next
+                Next
+            Catch ex As Exception
+                TaxTp = "002"
+            End Try
+
+            Dim Cdtr = New XElement("Cdtr", New XElement("TaxId", TaxId.TrimEnd), New XElement("TaxTp", TaxTp))
+            Dim RefNb = New XElement("RefNb", "WHT" & RefNbValue)
+            Dim mtd = New XElement("Mtd", "B")
+            Dim Rcrd As XElement
+            D_Tax_GenRcrd(Rcrd, Batchno, EntryNo)
+
+            Tax.Add(Cdtr)
+            Tax.Add(RefNb)
+            Tax.Add(mtd)
+
+            DataGETW = clsCGenerateFile.GetDataW(Batchno, EntryNo)
+         
+            If DataGETW.Rows.Count > 0 Then
+                Tax.Add(Rcrd)
+            End If
+
         Catch ex As Exception
-            TaxTp = "002"
+            MessageBox.Show("Error 774: " & ex.Message)
         End Try
-
-        Dim Cdtr = New XElement("Cdtr", New XElement("TaxId", TaxId.TrimEnd), New XElement("TaxTp", TaxTp))
-        Dim RefNb = New XElement("RefNb", "WHT" & RefNbValue)
-        Dim mtd = New XElement("mtd", "B")
-        Dim Rcrd As XElement
-        D_Tax_GenRcrd(Rcrd, Batchno, EntryNo)
-
-        Tax.Add(Cdtr)
-        Tax.Add(RefNb)
-        Tax.Add(mtd)
-        Tax.Add(Rcrd)
-
     End Sub
 
     Sub D_Tax_GenRcrd(ByRef Rcrd As XElement, ByVal batchno As String, ByVal EntryNo As String)
+        Try
+            Dim TpValue As Integer
+            Dim WHTCODE As String = ""
+            Dim getWHTCODE As String = ""
+            Dim getAddtlInf As String = ""
+            Dim arrAddt(3) As String
+            DataGETW.Rows.Clear()
+            DataGETW.Columns.Clear()
+            DataGETW.Clear()
 
-        Dim TpValue As Integer
-        Dim WHTCODE As String = ""
-        Dim getWHTCODE As String = ""
-        Dim getAddtlInf As String = ""
-        Dim arrAddt(3) As String
-        DataGETW.Rows.Clear()
-        DataGETW.Columns.Clear()
-        DataGETW.Clear()
+            DataGETW = clsCGenerateFile.GetDataW(batchno, EntryNo)
+            Rcrd = New XElement("Rcrd")
 
-        DataGETW = clsCGenerateFile.GetDataW(batchno, EntryNo)
-        Rcrd = New XElement("Rcrd")
+            If DataGETW.Rows.Count = 0 Then
+                TpValue = 0
+            Else
+                TpValue = 1
+            End If
 
-        If DataGETW.Rows.Count = 0 Then
-            TpValue = 0
-        Else
-            TpValue = 1
-        End If
-
-        For i = 0 To DataGETW.Rows.Count - 1
-            getWHTCODE = DataGETW.Rows(i).Item("IDDISTCODE").ToString.TrimEnd
-            Select Case getWHTCODE
-                Case "T31"
-                    WHTCODE = "016"
-                Case "T33"
-                    WHTCODE = "007"
-                Case "T35"
-                    WHTCODE = "009"
-                Case "T531"
-                    WHTCODE = "016"
-                Case "T532"
-                    WHTCODE = "014"
-                Case "T533"
-                    WHTCODE = "007"
-                Case "T535"
-                    WHTCODE = "009"
-                Case Else
-                    WHTCODE = "007"
-            End Select
-            Try
-                getAddtlInf = DataGETW.Rows(i).Item("TEXTREF").ToString.TrimEnd
-                arrAddt = getAddtlInf.Split(",")
-                If arrAddt.Count >= 4 Then
-                    If arrAddt(2).ToString <> "" Then
-                        getAddtlInf = arrAddt(2).ToString
+            For i = 0 To DataGETW.Rows.Count - 1
+                getWHTCODE = DataGETW.Rows(i).Item("IDDISTCODE").ToString.TrimEnd
+                Select Case getWHTCODE
+                    Case "T31"
+                        WHTCODE = "016"
+                    Case "T33"
+                        WHTCODE = "007"
+                    Case "T35"
+                        WHTCODE = "009"
+                    Case "T531"
+                        WHTCODE = "016"
+                    Case "T532"
+                        WHTCODE = "014"
+                    Case "T533"
+                        WHTCODE = "007"
+                    Case "T535"
+                        WHTCODE = "009"
+                    Case Else
+                        WHTCODE = "007"
+                End Select
+                Try
+                    getAddtlInf = DataGETW.Rows(i).Item("TEXTREF").ToString.TrimEnd
+                    arrAddt = getAddtlInf.Split(",")
+                    If arrAddt.Count >= 4 Then
+                        If arrAddt(2).ToString <> "" Then
+                            getAddtlInf = arrAddt(2).ToString
+                        Else
+                            getAddtlInf = "etc"
+                        End If
                     Else
                         getAddtlInf = "etc"
                     End If
-                Else
+
+                Catch ex As Exception
                     getAddtlInf = "etc"
-                End If
+                End Try
+            Next
 
-            Catch ex As Exception
-                getAddtlInf = "etc"
-            End Try
-        Next
+            Dim TP = New XElement("Tp", TpValue)
+            Dim Ctgy = New XElement("Ctgy", 0)
 
-        Dim TP = New XElement("TP", TpValue)
-        Dim Ctgy = New XElement("Ctgy", 0)
+            Dim CtgyDtls = New XElement("CtgyDtls", WHTCODE)
+            Dim TaxAmt As XElement
+            D_Tax_GenTaxAmt(TaxAmt, DataGETW)
 
-        Dim CtgyDtls = New XElement("CtgyDtls", WHTCODE)
-        Dim TaxAmt As XElement
-        D_Tax_GenTaxAmt(TaxAmt, DataGETW)
-
-        Rcrd.Add(TP)
-        Rcrd.Add(Ctgy)
-        Rcrd.Add(CtgyDtls)
-        Rcrd.Add(TaxAmt)
-        Dim AddtlInf = New XElement("AddtlInf", getAddtlInf)
-        Rcrd.Add(AddtlInf)
-
+            Rcrd.Add(TP)
+            Rcrd.Add(Ctgy)
+            Rcrd.Add(CtgyDtls)
+            Rcrd.Add(TaxAmt)
+            Dim AddtlInf = New XElement("AddtlInf", getAddtlInf)
+            Rcrd.Add(AddtlInf)
+        Catch ex As Exception
+            MessageBox.Show("Error 850: " & ex.Message)
+        End Try
     End Sub
     Sub D_Tax_GenTaxAmt(ByRef TaxAmt As XElement, ByVal DataGETW As DataTable)
+        Try
         Dim TaxbaseAmt As String = ""
         Dim TOTAMT As String = ""
         Dim Rate As Double
@@ -768,34 +868,63 @@ Module GenerateXML
             TaxbaseAmt = DataGETW.Rows(i).Item("TAXBASE").ToString.TrimEnd
             TOTAMT = DataGETW.Rows(i).Item("TOTAMOUNT").ToString.TrimEnd
             WHTAMOUNT = DataGETW.Rows(i).Item("WHTAMOUNT").ToString.TrimEnd
+
         Next
+        'Case No WHT(T3,T53) at transaction Taxbase,TOTAMT,WHTAMOUNT = 0 
+        If TaxbaseAmt = "" Then
+            TaxbaseAmt = 0
+            TOTAMT = 0
+            WHTAMOUNT = 0
+        Else
+            TaxbaseAmt = TaxbaseAmt.Remove(TaxbaseAmt.Length - 1)
+            TOTAMT = TOTAMT.Remove(TOTAMT.Length - 1)
+            WHTAMOUNT = WHTAMOUNT.Remove(WHTAMOUNT.Length - 1)
+        End If
+
         If TaxbaseAmt <> 0 Then
             Rate = (WHTAMOUNT / TaxbaseAmt) * 100
         Else
             Rate = 0
         End If
 
+
         TaxAmt = New XElement("TaxAmt")
         Dim taxRate = New XElement("Rate", Math.Round(Rate))
-        Dim TaxblBaseAmt = New XElement("TaxblBaseAmt", TaxbaseAmt)
-        Dim TltAmt = New XElement("TltAmt", TOTAMT)
+        Dim TaxblBaseAmt = New XElement("TaxblBaseAmt", New XAttribute("Ccy", "THB"), TaxbaseAmt)
+        Dim TltAmt = New XElement("TtlAmt", New XAttribute("Ccy", "THB"), TOTAMT)
         Dim Dtls As XElement
         D_Tax_GenDtls(Dtls, WHTAMOUNT)
 
         TaxAmt.Add(taxRate)
         TaxAmt.Add(TaxblBaseAmt)
         TaxAmt.Add(TltAmt)
-        TaxAmt.Add(Dtls)
+            TaxAmt.Add(Dtls)
+        Catch ex As Exception
+            MessageBox.Show("Error 896: " & ex.Message)
+        End Try
     End Sub
 
     Sub D_Tax_GenDtls(ByRef Dtls As XElement, ByVal WHTAMOUNT As String)
-        Dtls = New XElement("Dtls")
-        Dim AmtTax = New XElement("Amt", WHTAMOUNT)
-        Dtls.Add(AmtTax)
+        Try
+            Dtls = New XElement("Dtls")
+            Dim AmtTax = New XElement("Amt", New XAttribute("Ccy", "THB"), WHTAMOUNT)
+            Dtls.Add(AmtTax)
+        Catch ex As Exception
+            MessageBox.Show("Error 907: " & ex.Message)
+        End Try
     End Sub
 
 #End Region
 
+#Region "RltdRmtInf"
+    Sub D_RltdRmtInf(ByRef RltdRmtInf As XElement)
+        RltdRmtInf = New XElement("RltdRmtInf")
+        Dim RmtLctnMtd As XElement = New XElement("RmtLctnMtd", "EMAL")
+        Dim RmtLctnElctrncAdr As XElement = New XElement("RmtLctnElctrncAdr", "treesukon@fmsconsult.com")
+        RltdRmtInf.Add(RmtLctnMtd)
+        RltdRmtInf.Add(RmtLctnElctrncAdr)
+    End Sub
+#End Region
 #End Region
 
 End Module
